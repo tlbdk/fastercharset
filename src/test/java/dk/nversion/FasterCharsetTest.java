@@ -35,11 +35,27 @@ public class FasterCharsetTest {
 
         getBytes((ArrayEncoder)new FasterCharset(StandardCharsets.US_ASCII).newEncoder(), sample, new byte[sample.length()], warmup);
         System.gc();
-        System.out.println( "FasterCharset.encode(US_ASCII): " + getBytes((ArrayEncoder)StandardCharsets.US_ASCII.newEncoder(), sample, new byte[sample.length()], iterations));
+        System.out.println( "FasterCharset.encode(US_ASCII): " + getBytes((ArrayEncoder)new FasterCharset(StandardCharsets.US_ASCII).newEncoder(), sample, new byte[sample.length()], iterations));
 
         encodeUS_ASCIILookupTable(sample, new byte[sample.length()], warmup);
         System.gc();
         System.out.println( "encodeUS_ASCIILookupTable: " + encodeUS_ASCIILookupTable(sample,  new byte[sample.length()], iterations));
+
+        getBytes((ArrayEncoder)StandardCharsets.ISO_8859_1.newEncoder(), sample, new byte[sample.length()], warmup);
+        System.gc();
+        System.out.println( "encode(ISO_8859_1): " + getBytes((ArrayEncoder)StandardCharsets.ISO_8859_1.newEncoder(), sample, new byte[sample.length()], iterations));
+
+        getBytes((ArrayEncoder)new FasterCharset(StandardCharsets.ISO_8859_1).newEncoder(), sample, new byte[sample.length()], warmup);
+        System.gc();
+        System.out.println( "FasterCharset.encode(ISO_8859_1): " + getBytes((ArrayEncoder)new FasterCharset(StandardCharsets.ISO_8859_1).newEncoder(), sample, new byte[sample.length()], iterations));
+
+        getBytes((ArrayEncoder)Charset.forName("cp277").newEncoder(), sample, new byte[sample.length()], warmup);
+        System.gc();
+        System.out.println( "encode(CP277): " + getBytes((ArrayEncoder)Charset.forName("cp277").newEncoder(), sample, new byte[sample.length()], iterations));
+
+        getBytes((ArrayEncoder)new FasterCharset(Charset.forName("cp277")).newEncoder(), sample, new byte[sample.length()], warmup);
+        System.gc();
+        System.out.println( "FasterCharset.encode(CP277): " + getBytes((ArrayEncoder)new FasterCharset(Charset.forName("cp277")).newEncoder(), sample, new byte[sample.length()], iterations));
     }
 
     private long getBytes(Charset charset, String sample, int iterations) {
@@ -58,13 +74,28 @@ public class FasterCharsetTest {
         return System.currentTimeMillis() - start;
     }
 
-    // US ASCII Test
     @Test
     public void testGetBytesUS_ASCIILookupTable() throws Exception {
         String sample = "The quick brown fox jumps over the lazy dog";
         byte[] bytes =  new byte[sample.length()];
         getBytesUS_ASCIILookupTable(sample.toCharArray(), bytes);
         assertArrayEquals(sample.getBytes(StandardCharsets.US_ASCII), bytes);
+    }
+
+    @Test
+    public void testGetBytesISO_8859_1() throws Exception {
+        String sample = "The quick brown fox jumps over the lazy dog";
+        byte[] bytes =  new byte[sample.length()];
+        ((ArrayEncoder)new FasterCharset(StandardCharsets.ISO_8859_1).newEncoder()).encode(sample.toCharArray(), 0, 0, bytes);
+        assertArrayEquals(sample.getBytes(StandardCharsets.ISO_8859_1), bytes);
+    }
+
+    @Test
+    public void testGetBytesCP277() throws Exception {
+        String sample = "The quick brown fox jumps over the lazy dog";
+        byte[] bytes =  new byte[sample.length()];
+        ((ArrayEncoder)new FasterCharset(Charset.forName("cp277")).newEncoder()).encode(sample.toCharArray(), 0, 0, bytes);
+        assertArrayEquals(sample.getBytes("cp277"), bytes);
     }
 
     final static byte[] US_ASCIITable = new byte[127];

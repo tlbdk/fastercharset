@@ -2,6 +2,7 @@ package dk.nversion;
 
 import sun.nio.cs.ArrayEncoder;
 import sun.nio.cs.Surrogate;
+import sun.nio.cs.ext.IBM277;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -19,7 +20,24 @@ public class FasterCharset extends Charset {
 
         if(charset.equals(StandardCharsets.US_ASCII)) {
             final byte[] charTable = new byte[128];
-            for(int i = 0; i < 127; i++) {
+            for (int i = 0; i < 127; i++) {
+                String character = Character.toString((char) i);
+                ;
+                charTable[i] = character.getBytes(charset)[0];
+            }
+            encoder = new Encoder(charset, charTable);
+
+        } else if(charset.equals(StandardCharsets.ISO_8859_1)) {
+                final byte[] charTable = new byte[256];
+                for(int i = 0; i < 256; i++) {
+                    String character = Character.toString((char) i);;
+                    charTable[i] = character.getBytes(charset)[0];
+                }
+                encoder = new Encoder(charset, charTable);
+
+        } else if(charset instanceof IBM277) {
+            final byte[] charTable = new byte[256];
+            for(int i = 0; i < 256; i++) {
                 String character = Character.toString((char) i);;
                 charTable[i] = character.getBytes(charset)[0];
             }
