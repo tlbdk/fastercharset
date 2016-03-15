@@ -45,14 +45,15 @@ public class FasterCharsetTest {
             }
 
         } else {
+            ArrayEncoder encoder = ((ArrayEncoder)charset.newEncoder());
             for (int i = 0; i < warmup; i++) {
-                ((ArrayEncoder)charset.newEncoder()).encode(sample.toCharArray(), 0, sample.length(), bytes);
+                encoder.encode(sample.toCharArray(), 0, sample.length(), bytes);
             }
             for(int i = 0; i < 3; i++) {
                 System.gc();
                 start = System.currentTimeMillis();
                 for (int j = 0; j < iterations; j++) {
-                    ((ArrayEncoder) charset.newEncoder()).encode(sample.toCharArray(), 0, sample.length(), bytes);
+                    encoder.encode(sample.toCharArray(), 0, sample.length(), bytes);
                 }
                 long subResult = System.currentTimeMillis() - start;
                 result = subResult < result ? subResult : result;

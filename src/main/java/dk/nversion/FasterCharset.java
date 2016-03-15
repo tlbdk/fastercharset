@@ -9,6 +9,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.*;
 
 // http://stackoverflow.com/questions/2726071/efficient-way-to-calculate-byte-length-of-a-character-depending-on-the-encoding
+// https://github.com/xetorthio/fastu
 
 public class FasterCharset extends Charset {
     private Charset charset;
@@ -60,7 +61,7 @@ public class FasterCharset extends Charset {
     }
 
     private static class Encoder extends CharsetEncoder implements ArrayEncoder {
-        private byte[] charTable;
+        private final byte[] charTable;
 
         private Encoder(Charset charset, byte[] charTable) {
             super(charset, 1.0F, 1.0F);
@@ -69,10 +70,12 @@ public class FasterCharset extends Charset {
 
         protected Encoder(Charset cs, float averageBytesPerChar, float maxBytesPerChar) {
             super(cs, averageBytesPerChar, maxBytesPerChar);
+            charTable = null;
         }
 
         protected Encoder(Charset cs, float averageBytesPerChar, float maxBytesPerChar, byte[] replacement) {
             super(cs, averageBytesPerChar, maxBytesPerChar, replacement);
+            charTable = null;
         }
 
         @Override
