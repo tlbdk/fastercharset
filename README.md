@@ -1,15 +1,20 @@
 # fastercharset
 Simple wrapper for Charset that tries to optimizes encoding and decoding for fixed length charsets:
 
-This code does not make things go faster on Java 8:
+Runtime in ms for 1 million encodings of "The quick brown fox jumps over the lazy dog":
 
-    getBytes(US_ASCII): 51
-    getBytesFasterCharset(US_ASCII): 50
-    getBytesUS_ASCIILookupTable: 56
-    encode(US_ASCII): 15
-    FasterCharset.encode(US_ASCII): 34
-    encodeUS_ASCIILookupTable: 42
-    encode(ISO_8859_1): 13
-    FasterCharset.encode(ISO_8859_1): 36
-    encode(CP277): 12
-    FasterCharset.encode(CP277): 38
+    ** String.getBytes() **
+    getBytes(US_ASCII): 44
+    getBytes(FasterCharset(US_ASCII)): 57
+    getBytes(ISO_8859_1): 47
+    getBytes(FasterCharset(ISO_8859_1)): 53
+    getBytes(CP277): 135
+    getBytes(FasterCharset(CP277)): 53
+    
+    ** Charset.Encode() **
+    getBytes(US_ASCII): 43
+    getBytes(FasterCharset(US_ASCII)): 45
+    getBytes(ISO_8859_1): 43
+    getBytes(FasterCharset(ISO_8859_1)): 44
+    getBytes(CP277): 123
+    getBytes(FasterCharset(CP277)): 43

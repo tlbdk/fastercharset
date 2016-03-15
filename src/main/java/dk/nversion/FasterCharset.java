@@ -1,7 +1,7 @@
 package dk.nversion;
 
 import sun.nio.cs.ArrayEncoder;
-import sun.nio.cs.Surrogate;
+import sun.nio.cs.US_ASCII;
 import sun.nio.cs.ext.IBM277;
 
 import java.nio.ByteBuffer;
@@ -18,29 +18,14 @@ public class FasterCharset extends Charset {
         super(charset.name(), charset.aliases().toArray(new String[charset.aliases().size()]));
         this.charset = charset;
 
-        if(charset.equals(StandardCharsets.US_ASCII)) {
+        if(charset instanceof US_ASCII) {
             final byte[] charTable = new byte[128];
-            for (int i = 0; i < 127; i++) {
-                String character = Character.toString((char) i);
-                ;
-                charTable[i] = character.getBytes(charset)[0];
-            }
+            createTable(charTable);
             encoder = new Encoder(charset, charTable);
 
-        } else if(charset.equals(StandardCharsets.ISO_8859_1)) {
-                final byte[] charTable = new byte[256];
-                for(int i = 0; i < 256; i++) {
-                    String character = Character.toString((char) i);;
-                    charTable[i] = character.getBytes(charset)[0];
-                }
-                encoder = new Encoder(charset, charTable);
-
-        } else if(charset instanceof IBM277) {
+        } else if(charset.equals(StandardCharsets.ISO_8859_1) || charset instanceof IBM277) {
             final byte[] charTable = new byte[256];
-            for(int i = 0; i < 256; i++) {
-                String character = Character.toString((char) i);;
-                charTable[i] = character.getBytes(charset)[0];
-            }
+            createTable(charTable);
             encoder = new Encoder(charset, charTable);
 
         } else {
@@ -64,10 +49,13 @@ public class FasterCharset extends Charset {
 
     @Override
     public CharsetEncoder newEncoder() {
-        if(charset.equals(StandardCharsets.US_ASCII)) {
-            return encoder;
-        } else {
-            return encoder;
+        return encoder;
+    }
+
+    private void createTable(byte[] bytes) {
+        for(int i = 0; i < bytes.length; i++) {
+            String character = Character.toString((char) i);;
+            bytes[i] = character.getBytes(charset)[0];
         }
     }
 
@@ -91,13 +79,16 @@ public class FasterCharset extends Charset {
         protected CoderResult encodeLoop(CharBuffer in, ByteBuffer out) {
             return null;
         }
-
+        
         @Override
-        public int encode(char[] chars, int inIndex, int outIndex, byte[] bytes) {
-            for(int i = 0; i < chars.length; i++) {
+        public int encode(char[] chars, int offset, int length, byte[] bytes) {
+        	length = Math.min(length, chars.length);
+            for(int i = offset; i < offset + length; i++) {
                 bytes[i] = charTable[chars[i]];
             }
-            return bytes.length;
+            return length;
         }
     }
 }
+
+

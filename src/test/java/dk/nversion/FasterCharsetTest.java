@@ -1,131 +1,84 @@
 package dk.nversion;
 
-import org.junit.Test;
-import sun.nio.cs.ArrayEncoder;
+import static org.junit.Assert.assertArrayEquals;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
-import static junit.framework.TestCase.assertEquals;
-import static org.junit.Assert.assertArrayEquals;
+import org.junit.Test;
+import sun.nio.cs.ArrayEncoder;
 
 public class FasterCharsetTest {
 
     @Test
     public void testGetBytes() throws Exception {
         String sample = "The quick brown fox jumps over the lazy dog";
-        int warmup = 100000000;
+        int warmup = 10000000;
         int iterations = 1000000;
 
-        getBytes(StandardCharsets.US_ASCII, sample, warmup);
-        System.gc();
-        System.out.println( "getBytes(US_ASCII): " + getBytes(StandardCharsets.US_ASCII, sample, iterations));
-
-        getBytes(new FasterCharset(StandardCharsets.US_ASCII), sample, warmup);
-        System.gc();
-        System.out.println( "getBytesFasterCharset(US_ASCII): " + getBytes(new FasterCharset(StandardCharsets.US_ASCII), sample, iterations));
-
-        getBytesUS_ASCIILookupTable(sample, warmup);
-        System.gc();
-        System.out.println( "getBytesUS_ASCIILookupTable: " + getBytesUS_ASCIILookupTable(sample, iterations));
-
-        getBytes((ArrayEncoder)StandardCharsets.US_ASCII.newEncoder(), sample, new byte[sample.length()], warmup);
-        System.gc();
-        System.out.println( "encode(US_ASCII): " + getBytes((ArrayEncoder)StandardCharsets.US_ASCII.newEncoder(), sample, new byte[sample.length()], iterations));
-
-        getBytes((ArrayEncoder)new FasterCharset(StandardCharsets.US_ASCII).newEncoder(), sample, new byte[sample.length()], warmup);
-        System.gc();
-        System.out.println( "FasterCharset.encode(US_ASCII): " + getBytes((ArrayEncoder)new FasterCharset(StandardCharsets.US_ASCII).newEncoder(), sample, new byte[sample.length()], iterations));
-
-        encodeUS_ASCIILookupTable(sample, new byte[sample.length()], warmup);
-        System.gc();
-        System.out.println( "encodeUS_ASCIILookupTable: " + encodeUS_ASCIILookupTable(sample,  new byte[sample.length()], iterations));
-
-        getBytes((ArrayEncoder)StandardCharsets.ISO_8859_1.newEncoder(), sample, new byte[sample.length()], warmup);
-        System.gc();
-        System.out.println( "encode(ISO_8859_1): " + getBytes((ArrayEncoder)StandardCharsets.ISO_8859_1.newEncoder(), sample, new byte[sample.length()], iterations));
-
-        getBytes((ArrayEncoder)new FasterCharset(StandardCharsets.ISO_8859_1).newEncoder(), sample, new byte[sample.length()], warmup);
-        System.gc();
-        System.out.println( "FasterCharset.encode(ISO_8859_1): " + getBytes((ArrayEncoder)new FasterCharset(StandardCharsets.ISO_8859_1).newEncoder(), sample, new byte[sample.length()], iterations));
-
-        getBytes((ArrayEncoder)Charset.forName("cp277").newEncoder(), sample, new byte[sample.length()], warmup);
-        System.gc();
-        System.out.println( "encode(CP277): " + getBytes((ArrayEncoder)Charset.forName("cp277").newEncoder(), sample, new byte[sample.length()], iterations));
-
-        getBytes((ArrayEncoder)new FasterCharset(Charset.forName("cp277")).newEncoder(), sample, new byte[sample.length()], warmup);
-        System.gc();
-        System.out.println( "FasterCharset.encode(CP277): " + getBytes((ArrayEncoder)new FasterCharset(Charset.forName("cp277")).newEncoder(), sample, new byte[sample.length()], iterations));
+        for(Object bytes : new Object[] { null, new byte[sample.length()] } ) {
+            System.out.println(bytes == null ? "** String.getBytes() **" : "** Charset.Encode() **");
+            System.out.println( "getBytes(US_ASCII): " + getBytes(StandardCharsets.US_ASCII, sample, (byte[])bytes, iterations, warmup));
+            System.out.println( "getBytes(FasterCharset(US_ASCII)): " + getBytes(new FasterCharset(StandardCharsets.US_ASCII), sample,  (byte[])bytes, iterations, warmup));
+            System.out.println( "getBytes(ISO_8859_1): " + getBytes(StandardCharsets.ISO_8859_1, sample, (byte[])bytes, iterations, warmup));
+            System.out.println( "getBytes(FasterCharset(ISO_8859_1)): " + getBytes(new FasterCharset(StandardCharsets.ISO_8859_1), sample, (byte[])bytes, iterations, warmup));
+            System.out.println( "getBytes(CP277): " + getBytes(Charset.forName("cp277"), sample, (byte[])bytes, iterations, warmup));
+            System.out.println( "getBytes(FasterCharset(CP277)): " + getBytes(new FasterCharset(Charset.forName("cp277")), sample, (byte[])bytes, iterations, warmup));
+        }
     }
 
-    private long getBytes(Charset charset, String sample, int iterations) {
-        final long start = System.currentTimeMillis();
-        for(int i = 0; i < iterations; i++) {
-            byte[] test = sample.getBytes(charset);
-        }
-        return System.currentTimeMillis() - start;
-    }
+    private long getBytes(Charset charset, String sample, byte[] bytes, int iterations, int warmup) {
+        long start;
+        long result = Long.MAX_VALUE;
+        if(bytes == null) {
+            for (int i = 0; i < warmup; i++) {
+                bytes = sample.getBytes(charset);
+            }
+            for(int j = 0; j < 3; j++) {
+                System.gc();
+                start = System.currentTimeMillis();
+                for (int i = 0; i < iterations; i++) {
+                    bytes = sample.getBytes(charset);
+                }
+                long subResult = System.currentTimeMillis() - start;
+                result = subResult < result ? subResult : result;
+            }
 
-    private long getBytes(ArrayEncoder encoder, String sample, byte[] bytes, int iterations) {
-        final long start = System.currentTimeMillis();
-        for(int i = 0; i < iterations; i++) {
-            encoder.encode(sample.toCharArray(), 0, 0, bytes);
+        } else {
+            for (int i = 0; i < warmup; i++) {
+                ((ArrayEncoder)charset.newEncoder()).encode(sample.toCharArray(), 0, sample.length(), bytes);
+            }
+            for(int i = 0; i < 3; i++) {
+                System.gc();
+                start = System.currentTimeMillis();
+                for (int j = 0; j < iterations; j++) {
+                    ((ArrayEncoder) charset.newEncoder()).encode(sample.toCharArray(), 0, sample.length(), bytes);
+                }
+                long subResult = System.currentTimeMillis() - start;
+                result = subResult < result ? subResult : result;
+            }
         }
-        return System.currentTimeMillis() - start;
+        return result;
     }
 
     @Test
-    public void testGetBytesUS_ASCIILookupTable() throws Exception {
+    public void testGetBytesUS_ASCII() throws Exception {
         String sample = "The quick brown fox jumps over the lazy dog";
-        byte[] bytes =  new byte[sample.length()];
-        getBytesUS_ASCIILookupTable(sample.toCharArray(), bytes);
+        byte[] bytes = sample.getBytes(new FasterCharset(StandardCharsets.US_ASCII));
         assertArrayEquals(sample.getBytes(StandardCharsets.US_ASCII), bytes);
     }
 
     @Test
     public void testGetBytesISO_8859_1() throws Exception {
         String sample = "The quick brown fox jumps over the lazy dog";
-        byte[] bytes =  new byte[sample.length()];
-        ((ArrayEncoder)new FasterCharset(StandardCharsets.ISO_8859_1).newEncoder()).encode(sample.toCharArray(), 0, 0, bytes);
+        byte[] bytes = sample.getBytes(new FasterCharset(StandardCharsets.ISO_8859_1));
         assertArrayEquals(sample.getBytes(StandardCharsets.ISO_8859_1), bytes);
     }
 
     @Test
     public void testGetBytesCP277() throws Exception {
         String sample = "The quick brown fox jumps over the lazy dog";
-        byte[] bytes =  new byte[sample.length()];
-        ((ArrayEncoder)new FasterCharset(Charset.forName("cp277")).newEncoder()).encode(sample.toCharArray(), 0, 0, bytes);
+        byte[] bytes = sample.getBytes(new FasterCharset(Charset.forName("cp277")));
         assertArrayEquals(sample.getBytes("cp277"), bytes);
-    }
-
-    final static byte[] US_ASCIITable = new byte[127];
-    static {
-        for(int i = 0; i < 127; i++) {
-            String character = Character.toString((char) i);;
-            US_ASCIITable[i] = character.getBytes(StandardCharsets.US_ASCII)[0];
-        }
-    }
-
-    private void getBytesUS_ASCIILookupTable(char[] sample, byte[] bytes) {
-        for(int i = 0; i < sample.length; i++) {
-            bytes[i] = US_ASCIITable[sample[i]];
-        }
-    }
-
-    private long getBytesUS_ASCIILookupTable(String sample, int iterations) {
-        final long start = System.currentTimeMillis();
-        for(int i = 0; i < iterations; i++) {
-            byte[] bytes = new byte[sample.length()];
-            getBytesUS_ASCIILookupTable(sample.toCharArray(), bytes);
-        }
-        return System.currentTimeMillis() - start;
-    }
-
-    private long encodeUS_ASCIILookupTable(String sample, byte[] bytes, int iterations) {
-        final long start = System.currentTimeMillis();
-        for(int i = 0; i < iterations; i++) {
-            getBytesUS_ASCIILookupTable(sample.toCharArray(), bytes);
-        }
-        return System.currentTimeMillis() - start;
     }
 }
